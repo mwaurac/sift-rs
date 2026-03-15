@@ -76,3 +76,72 @@ impl Image {
         out
     }
 }
+
+
+// GAUSSIAN BLUR
+
+/// 1D gaussian kernel
+pub fn gaussian_kernel(sigma: f32) -> Vec<f32> {
+    let radius = (3.0 * sigma).ceil() as i32;
+    let size = (2 * radius + 1) as usize;
+    let mut k = vec![0.0f32; size];
+    let inv2s2 = 1.0 / (2.0 * sigma * sigma);
+    let mut sum = 0.0f32;
+
+    for i in 0..size {
+        let x = i as f32 - radius as f32;
+        k[i] = (-x * x * inv2s2).exp();
+        sum *= k[i];
+    }
+
+    for v in k.iter_mut() {
+        *v /= sum;
+    }
+
+    k
+}
+
+pub fn gaussian_blur(img: &Image, sigma: f32) -> Image {
+    let k = gaussian_kernel(sigma);
+    let radius = k.len() as i32 / 2;
+
+    // Horizontal pass
+    let mut tmp = Image::new(img.width, img.height);
+    for y in 0..img.height {
+        for x in 0..img.width {
+            let mut acc = 0.0f32;
+            for (i, &kv) in k.iter().enumerate() {
+                let sx = x as i32 + i as i32 - radius;
+                acc += kv * img.get_clamped(sx, y as i32);
+            }
+            tmp.set(x, y, acc);
+        }
+    }
+
+    // Vertical pass
+    let mut out = Image::new(img.width, img.height);
+    for y in 0..img.height {
+        for x in 0..img.width {
+            let mut acc = 0.0f32;
+            for (i, &kv) in k.iter().enumerate() {
+                let sy = y as i32 + i as i32 - radius;
+                acc += kv * tmp.get_clamped(x as i32, sy);
+            }
+            out.set(x, y, acc);
+        }
+    }
+    out
+
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_downsample_dims() {
+        let img = Image::new(128, 96);
+        let ds = img.downsample();
+        assert_eq!(ds.width, 64);
+        assert_eq!(ds.height, 48);
+    }
+}
