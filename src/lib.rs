@@ -1,5 +1,5 @@
 use crate::descriptor::Descriptor;
-use crate::image::Image;
+pub use crate::image::Image;
 use crate::keypoint::KeyPoint;
 
 mod image;
