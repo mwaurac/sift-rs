@@ -1,3 +1,7 @@
+use crate::image::Image;
+
+mod image;
+
 pub struct SiftParams {
     /// max keypoints retained
     pub n_features: usize,
@@ -21,4 +25,29 @@ impl Default for SiftParams {
             sigma: 1.6,
         }
     }
+}
+
+pub struct KeyPoint {
+    /// sub-pixel position in the original image coordinate space
+    pub x: f32,
+    pub y: f32,
+    /// diameter of the keypoint neighborhood
+    pub size: f32,
+    /// dominant orientation in degrees
+    pub angle: f32,
+    /// DoG response value
+    pub response: f32,
+    /// octave index
+    pub octave: i32,
+    /// layer within the octave
+    pub layer: i32,
+}
+
+type Descriptor = [u8; 128];
+
+pub fn detect_and_compute(
+    image: &Image,
+    params: &SiftParams,
+) -> (Vec<KeyPoint>, Vec<Descriptor>) {
+    todo!("not implemented")
 }
