@@ -9,7 +9,11 @@ pub struct Image {
 impl Image {
     pub fn new(width: usize, height: usize, data: Vec<f32>) -> Self {
         assert_eq!(data.len(), width * height);
-        Self { width, height, data }
+        Self {
+            width,
+            height,
+            data,
+        }
     }
 
     /// Construct from u8 pixels, converting to f32 in [0,255].
@@ -44,15 +48,14 @@ impl Image {
                 let c0 = sc.floor() as i32;
                 let dr = sr - r0 as f32;
                 let dc = sc - c0 as f32;
-                let p00 = self.get_clamped(r0,     c0    );
-                let p01 = self.get_clamped(r0,     c0 + 1);
-                let p10 = self.get_clamped(r0 + 1, c0    );
+                let p00 = self.get_clamped(r0, c0);
+                let p01 = self.get_clamped(r0, c0 + 1);
+                let p10 = self.get_clamped(r0 + 1, c0);
                 let p11 = self.get_clamped(r0 + 1, c0 + 1);
-                out[r * new_w + c] =
-                    p00 * (1.0 - dr) * (1.0 - dc)
-                        + p01 * (1.0 - dr) * dc
-                        + p10 * dr * (1.0 - dc)
-                        + p11 * dr * dc;
+                out[r * new_w + c] = p00 * (1.0 - dr) * (1.0 - dc)
+                    + p01 * (1.0 - dr) * dc
+                    + p10 * dr * (1.0 - dc)
+                    + p11 * dr * dc;
             }
         }
         Image::new(new_w, new_h, out)
@@ -82,14 +85,15 @@ impl Image {
     pub fn subtract(&self, other: &Image) -> Image {
         assert_eq!(self.width, other.width);
         assert_eq!(self.height, other.height);
-        let data: Vec<f32> = self.data.iter()
+        let data: Vec<f32> = self
+            .data
+            .iter()
             .zip(other.data.iter())
             .map(|(a, b)| a - b)
             .collect();
         Image::new(self.width, self.height, data)
     }
 }
-
 
 fn gaussian_kernel_1d(sigma: f64) -> Vec<f32> {
     let radius = ((sigma * 3.0 + 0.5) as usize).max(1);
@@ -117,8 +121,8 @@ fn convolve_rows(img: &Image, kernel: &[f32]) -> Image {
         for c in 0..w {
             let mut acc = 0f32;
             for (ki, &kv) in kernel.iter().enumerate() {
-                let col_src = (c as i32 + ki as i32 - radius as i32)
-                    .clamp(0, w as i32 - 1) as usize;
+                let col_src =
+                    (c as i32 + ki as i32 - radius as i32).clamp(0, w as i32 - 1) as usize;
                 acc += kv * img.data[r * w + col_src];
             }
             out[r * w + c] = acc;
@@ -136,8 +140,8 @@ fn convolve_cols(img: &Image, kernel: &[f32]) -> Image {
         for c in 0..w {
             let mut acc = 0f32;
             for (ki, &kv) in kernel.iter().enumerate() {
-                let row_src = (r as i32 + ki as i32 - radius as i32)
-                    .clamp(0, h as i32 - 1) as usize;
+                let row_src =
+                    (r as i32 + ki as i32 - radius as i32).clamp(0, h as i32 - 1) as usize;
                 acc += kv * img.data[row_src * w + c];
             }
             out[r * w + c] = acc;

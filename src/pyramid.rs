@@ -1,12 +1,11 @@
 /// Gaussian and Difference-of-Gaussian scale-space pyramids.
 ///
-
 use crate::image::Image;
 
 /// `gauss_pyr[octave][layer]` — the blurred images.
 pub type GaussPyramid = Vec<Vec<Image>>;
 /// `dog_pyr[octave][layer]` — DoG = gauss[l+1] - gauss[l].
-pub type DogPyramid   = Vec<Vec<Image>>;
+pub type DogPyramid = Vec<Vec<Image>>;
 
 /// Build the Gaussian pyramid.
 ///
@@ -41,8 +40,8 @@ pub fn build_gaussian_pyramid(
         let mut octave: Vec<Image> = Vec::with_capacity(n_layers);
 
         if o == 0 {
-            // Base octave starts from the (already sigma-blurred) base image
-            octave.push(base.gaussian_blur(sig[0]));
+            // OpenCV uses the prepared base image directly as octave 0, layer 0.
+            octave.push(base.clone());
         } else {
             // Downsample the third-from-top layer of the previous octave
             // (index n_octave_layers in the previous octave = 2 * sigma^o)
@@ -65,11 +64,15 @@ pub fn build_gaussian_pyramid(
 /// Build the DoG pyramid from the Gaussian pyramid.
 /// `dog_pyr[o][l] = gauss_pyr[o][l+1] - gauss_pyr[o][l]`
 pub fn build_dog_pyramid(gauss_pyr: &GaussPyramid) -> DogPyramid {
-    gauss_pyr.iter().map(|octave| {
-        octave.windows(2)
-            .map(|pair| pair[1].subtract(&pair[0]))
-            .collect()
-    }).collect()
+    gauss_pyr
+        .iter()
+        .map(|octave| {
+            octave
+                .windows(2)
+                .map(|pair| pair[1].subtract(&pair[0]))
+                .collect()
+        })
+        .collect()
 }
 
 /// Number of octaves formula:
@@ -85,6 +88,8 @@ pub fn create_base_image(img: &Image, sigma: f64) -> Image {
     // After 2x upscale, the effective sigma doubles: 2 * INIT_SIGMA = 1.0
     // We need to add `sigma_diff` to bring it up to `sigma`.
     let upscaled = img.upscale2x();
-    let sigma_diff = (sigma * sigma - (2.0 * INIT_SIGMA) * (2.0 * INIT_SIGMA)).sqrt().max(0.01);
+    let sigma_diff = (sigma * sigma - (2.0 * INIT_SIGMA) * (2.0 * INIT_SIGMA))
+        .sqrt()
+        .max(0.01);
     upscaled.gaussian_blur(sigma_diff)
 }
